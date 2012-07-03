@@ -160,6 +160,8 @@
 	@mode how to return the results. "all" gives the http response, 
 		"struct" parses out the ical, and "ical" is the text string.  
 		struct and ical are  array of entries
+
+	returns object if successful, false otherwise
 	 --->
 	<cffunction name="getEventByUid" returntype="any" access="public" output="false">
 		<cfargument name="uid" type="string" required="false" default="" />
@@ -168,7 +170,11 @@
 		
 		<cfset var result = getEvents("", "", "UID:#arguments.uid#", "", arguments.urlAppend, arguments.mode)>
 
-		<cfreturn result >
+		<cfif ArrayLen(result) gt 0 and arguments.mode neq 'all'>
+			<cfreturn result[1] >
+		</cfif>
+
+		<cfreturn false >
 	</cffunction>
 
 	<!--- 
@@ -179,6 +185,8 @@
 	@mode how to return the results. "all" gives the http response, 
 		"struct" parses out the ical, and "ical" is the text string.  
 		struct and ical are  array of entries
+
+	returns object if successful, false otherwise
 	 --->
 	<cffunction name="getTodoByUid" returntype="any" access="public" output="false">
 		<cfargument name="uid" type="string" required="false" default="" />
@@ -186,8 +194,12 @@
 		<cfargument name="mode" type="string" required="false" default="struct" hint="all, struct, or ical" />
 		
 		<cfset var result = getTodos("", "", "UID:#arguments.uid#", "", arguments.urlAppend, arguments.mode)>
-
-		<cfreturn result >
+		
+		<cfif ArrayLen(result) gt 0 and arguments.mode neq 'all'>
+			<cfreturn result[1] >
+		</cfif>
+		
+		<cfreturn false >
 	</cffunction>
 
 	<!--- 
