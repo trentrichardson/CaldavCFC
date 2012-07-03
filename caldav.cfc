@@ -44,7 +44,7 @@
 	options
 	@urlAppend extend the host url to the ico file
 
-	returns a string list of all options
+	returns a string list of all options, or "" if no options returned
 
 	urlAppend is appended to the host url to point to a specific ics file:
 	'http://mail.domain.com/calendars/DOMAIN/USER/Calendar/' & 'my-unique-uid-12345.ics'
@@ -57,8 +57,12 @@
 		<cfargument name="urlAppend" type="string" required="false" default="" />
 
 		<cfset var result = makeRequest(arguments.urlAppend, "OPTIONS", "", "text/xml")>
-		
-		<cfreturn result.headers.allow >
+
+		<cfif isDefined('result.headers.allow')>
+			<cfreturn result.headers.allow >
+		</cfif>
+
+		<cfreturn "" />
 	</cffunction>
 
 	<!--- 
@@ -313,6 +317,8 @@
 		<cfset var items = []>
 		<cfset var contents = "">
 		<cfset var xmlobj = {}>
+		<cfset var href={}>
+		<cfset var ical={}>
 
 		<cfsavecontent variable="xmlstr"><?xml version="1.0" encoding="utf-8" ?>
 			<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
@@ -330,7 +336,7 @@
 		<cfif arguments.mode eq "all">
 			<cfreturn result >
 		</cfif>
-		
+
 		<!--- Sometimes, for some reason or another the xml strings won't parse, if so we will use regex instead --->
 		<cftry>
 			<cfset xmlobj = XmlParse(result.body)>
@@ -338,34 +344,37 @@
 			<cfif not find("xmlns:c=", xmlobj)>
 				<cfreturn items >
 			</cfif>
+			
+			<!--- a:response will contain a:href and ccalendar-data which we want --->
+			<cfset search = xmlSearch(xmlobj, "//a:response/")>
 
-			<cfset search = xmlSearch(xmlobj, "//c:calendar-data/text()")>
+			<cfloop array="#search#" index="i">
+				<cfset href=i['a:href'].XmlText>
+				<cfset ical=i['a:propstat']['a:prop']['c:calendar-data'].XmlText>
 
-			<cfif arguments.mode eq "struct">
-				<cfloop array="#search#" index="i">
-					<cfset ArrayAppend(items, parseResponse(i.XmlValue))>
-				</cfloop>
-			<cfelse>
-				<cfloop array="#search#" index="i">
-					<cfset ArrayAppend(items, i.XmlValue)>
-				</cfloop>
-			</cfif>
-
+				<cfif arguments.mode eq "struct">
+					<cfset ArrayAppend(items, { href=href, file=getFileFromPath(href), ical=parseResponse(ical) })>
+				<cfelse>
+					<cfset ArrayAppend(items, { href=href, file=getFileFromPath(href), ical=ical })>
+				</cfif>
+			</cfloop>
+			
 			<cfcatch type="Any">
 
 				<!--- failed to create an xml doc, maybe invalid xml, who knows... so parse as string --->
-				<cfset search = ReMatchNoCase("\<c\:calendar\-data.*?\>(.+?)\<\/c\:calendar\-data\>", result.body)>
+				<cfset search = ReMatchNoCase("\<a\:response\s?.*?\>(.+?)\<\/a\:response\>", result.body)>
 				
 				<cfloop array="#search#" index="i">
-					<cfset contents = ReReplaceNoCase(i, "\<\/?c\:calendar\-data.*?\>", "", "all")>
+					<cfset href=ReReplaceNoCase(i, "(.*?\<a\:href\s?.*?\>)(.+?)(\<\/a\:href\>.*)", "\2")>
+					<cfset ical=ReReplaceNoCase(i, "(.*?\<c\:calendar\-data\s?.*?\>)(.+?)(\<\/c\:calendar\-data\>.*)", "\2")>
 
 					<cfif arguments.mode eq "struct">
-						<cfset ArrayAppend(items, parseResponse(contents))>
+						<cfset ArrayAppend(items, { href=href, file=getFileFromPath(href), ical=parseResponse(ical) })>
 					<cfelse>
-						<cfset ArrayAppend(items, contents)>
+						<cfset ArrayAppend(items, { href=href, file=getFileFromPath(href), ical=ical })>
 					</cfif>
 				</cfloop>
-
+				
 			</cfcatch>
 		</cftry>
 
