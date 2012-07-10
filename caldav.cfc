@@ -318,6 +318,9 @@
 	@mode how to return the results. "all" gives the http response, 
 		"struct" parses out the ical, and "ical" is the text string.  
 		struct and ical are  array of entries
+
+	For more information regarding filters see:
+	http://tools.ietf.org/html/rfc4791
 	 --->
 	<cffunction name="query" returntype="any" access="public" output="false">
 		<cfargument name="xmlFilter" type="string" required="true" />
