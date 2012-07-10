@@ -1,4 +1,4 @@
-<cfset host = "domain.com"> <!--- Something like: 'domain.com' --->
+<cfset host = ""> <!--- Something like: 'domain.com' --->
 <cfset port = 80> <!--- https or ssl will likely be 443, http or tcp will likely be 80 --->
 <cfset path = ""> <!--- Something like: /calendars/DOMAIN/USER/Calendar/ --->
 <cfset username = ""> <!--- you know what to do with these two.. --->

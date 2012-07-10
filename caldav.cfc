@@ -90,6 +90,9 @@
 	SUMMARY:My Event Title
 	END:VEVENT
 	END:VCALENDAR
+
+	For more information regarding iCalendar spec:
+	http://www.kanzaki.com/docs/ical/
 	 --->
 	<cffunction name="edit" returntype="struct" access="public" output="false">
 		<cfargument name="urlAppend" type="string" required="true" />
@@ -210,7 +213,7 @@
 	@posFilters list of KEY:VALUE pairs to query against for a positive 
 		match. Ex: "STATUS:NEEDS-ACTION,PRIORITY:1". Look at the raw ical 
 		to see the pairs you can query against
-	@posFilters list of KEY:VALUE pairs to query against for a negative 
+	@negFilters list of KEY:VALUE pairs to query against for a negative 
 		match. Ex: "STATUS:COMPLETED,STATUS:CANCELLED" will get all todos 
 		not cancelled and not completed
 	@urlAppend extend the host url to the ico file or folder
@@ -264,7 +267,7 @@
 	@posFilters list of KEY:VALUE pairs to query against for a positive 
 		match. Ex: "STATUS:NEEDS-ACTION,PRIORITY:1". Look at the raw ical 
 		to see the pairs you can query against
-	@posFilters list of KEY:VALUE pairs to query against for a negative 
+	@negFilters list of KEY:VALUE pairs to query against for a negative 
 		match. Ex: "STATUS:COMPLETED,STATUS:CANCELLED" will get all todos 
 		not cancelled and not completed
 	@urlAppend extend the host url to the ico file or folder
