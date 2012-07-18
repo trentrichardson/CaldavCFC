@@ -6,6 +6,7 @@ About
 CaldavCFC is a ColdFusion component/class for searching, creating, editing, deleting events from a caldav calendar.
 
 Author: [Trent Richardson](http://trentrichardson.com)
+Documentation: [CaldavCFC Documentation](http://trentrichardson.com/2012/07/09/caldavcfc-access-and-update-caldav-with-coldfusion/)
 
 Use
 ---
