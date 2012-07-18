@@ -171,7 +171,7 @@
 		<cfargument name="urlAppend" type="string" required="false" default="" />
 		<cfargument name="mode" type="string" required="false" default="struct" hint="all, struct, or ical" />
 		
-		<cfset var result = getEvents("", "", "UID:#arguments.uid#", "", arguments.urlAppend, arguments.mode)>
+		<cfset var result = getEvents("", "", false, "UID:#arguments.uid#", "", arguments.urlAppend, arguments.mode)>
 
 		<cfif ArrayLen(result) gt 0 and arguments.mode neq 'all'>
 			<cfreturn result[1] >
@@ -196,7 +196,7 @@
 		<cfargument name="urlAppend" type="string" required="false" default="" />
 		<cfargument name="mode" type="string" required="false" default="struct" hint="all, struct, or ical" />
 		
-		<cfset var result = getTodos("", "", "UID:#arguments.uid#", "", arguments.urlAppend, arguments.mode)>
+		<cfset var result = getTodos("", "", false, "UID:#arguments.uid#", "", arguments.urlAppend, arguments.mode)>
 		
 		<cfif ArrayLen(result) gt 0 and arguments.mode neq 'all'>
 			<cfreturn result[1] >
@@ -210,10 +210,11 @@
 	getEvents
 	@startDate String start date: 20120601T000000Z
 	@endDate String end date: 20120601T000000Z
+	@expand Boolean true to expand recuring events into separate events
 	@posFilters list of KEY:VALUE pairs to query against for a positive 
 		match. Ex: "STATUS:NEEDS-ACTION,PRIORITY:1". Look at the raw ical 
 		to see the pairs you can query against
-	@negFilters list of KEY:VALUE pairs to query against for a negative 
+	@posFilters list of KEY:VALUE pairs to query against for a negative 
 		match. Ex: "STATUS:COMPLETED,STATUS:CANCELLED" will get all todos 
 		not cancelled and not completed
 	@urlAppend extend the host url to the ico file or folder
@@ -224,6 +225,7 @@
 	<cffunction name="getEvents" returntype="any" access="public" output="false">
 		<cfargument name="startDateTime" type="string" required="false" default="" />
 		<cfargument name="endDateTime" type="string" required="false" default="" />
+		<cfargument name="expand" type="boolean" required="false" default="false" hint="Expand recurring events? requires start and end date" />
 		<cfargument name="posFilters" type="string" required="false" default="" hint="List of statuses to filter positive for: STATUS:COMPLETED,PRIORITY:1" />
 		<cfargument name="negFilters" type="string" required="false" default="" hint="List of statuses to filter negative for: STATUS:COMPLETED,PRIORITY:2" />
 		<cfargument name="urlAppend" type="string" required="false" default="" />
@@ -231,27 +233,39 @@
 		
 		<cfset var result = {}>
 
-		<cfsavecontent variable="xmlstr">
-			<C:filter>
-				<C:comp-filter name="VCALENDAR">
-					<C:comp-filter name="VEVENT">
-						<cfloop list="#arguments.posFilters#" index="i">
-							<C:prop-filter name="<cfoutput>#ucase(listFirst(i,':'))#</cfoutput>">
-								<C:text-match negate-condition="no"><cfoutput>#ucase(listLast(i,':'))#</cfoutput></C:text-match>
-							</C:prop-filter>
-						</cfloop>
-						<cfloop list="#arguments.negFilters#" index="i">
-							<C:prop-filter name="<cfoutput>#ucase(listFirst(i,':'))#</cfoutput>">
-								<C:text-match negate-condition="yes"><cfoutput>#ucase(listLast(i,':'))#</cfoutput></C:text-match>
-							</C:prop-filter>
-						</cfloop>
-
-						<cfif arguments.startDateTime neq "" and arguments.endDateTime neq "">
-							<C:time-range start="<cfoutput>#arguments.startDateTime#</cfoutput>" end="<cfoutput>#arguments.endDateTime#</cfoutput>"/>
+		<cfsavecontent variable="xmlstr"><?xml version="1.0" encoding="utf-8" ?>
+			<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+				<D:prop>
+					<C:calendar-data>
+						<cfif arguments.expand and arguments.startDateTime neq "" and arguments.endDateTime neq "">
+							<C:expand start="<cfoutput>#arguments.startDateTime#</cfoutput>" end="<cfoutput>#arguments.endDateTime#</cfoutput>"/>
 						</cfif>
-					</C:comp-filter>
-				</C:comp-filter>
-			</C:filter>
+					</C:calendar-data>
+					<D:getetag/>
+				</D:prop>
+
+					<C:filter>
+						<C:comp-filter name="VCALENDAR">
+							<C:comp-filter name="VEVENT">
+								<cfloop list="#arguments.posFilters#" index="i">
+									<C:prop-filter name="<cfoutput>#ucase(listFirst(i,':'))#</cfoutput>">
+										<C:text-match negate-condition="no"><cfoutput>#ucase(listLast(i,':'))#</cfoutput></C:text-match>
+									</C:prop-filter>
+								</cfloop>
+								<cfloop list="#arguments.negFilters#" index="i">
+									<C:prop-filter name="<cfoutput>#ucase(listFirst(i,':'))#</cfoutput>">
+										<C:text-match negate-condition="yes"><cfoutput>#ucase(listLast(i,':'))#</cfoutput></C:text-match>
+									</C:prop-filter>
+								</cfloop>
+
+								<cfif arguments.startDateTime neq "" and arguments.endDateTime neq "">
+									<C:time-range start="<cfoutput>#arguments.startDateTime#</cfoutput>" end="<cfoutput>#arguments.endDateTime#</cfoutput>"/>
+								</cfif>
+							</C:comp-filter>
+						</C:comp-filter>
+					</C:filter>
+
+			</C:calendar-query>
 		</cfsavecontent>
 
 		<cfset result = query(xmlstr, arguments.urlAppend, arguments.mode)>
@@ -264,10 +278,11 @@
 	getTodos
 	@startDate String start date: 20120601T000000Z
 	@endDate String end date: 20120601T000000Z
+	@expand Boolean true to expand recuring events into separate events
 	@posFilters list of KEY:VALUE pairs to query against for a positive 
 		match. Ex: "STATUS:NEEDS-ACTION,PRIORITY:1". Look at the raw ical 
 		to see the pairs you can query against
-	@negFilters list of KEY:VALUE pairs to query against for a negative 
+	@posFilters list of KEY:VALUE pairs to query against for a negative 
 		match. Ex: "STATUS:COMPLETED,STATUS:CANCELLED" will get all todos 
 		not cancelled and not completed
 	@urlAppend extend the host url to the ico file or folder
@@ -278,6 +293,7 @@
 	<cffunction name="getTodos" returntype="any" access="public" output="false">
 		<cfargument name="startDateTime" type="string" required="false" default="" />
 		<cfargument name="endDateTime" type="string" required="false" default="" />
+		<cfargument name="expand" type="boolean" required="false" default="false" hint="Expand recurring events? requires start and end date" />
 		<cfargument name="posFilters" type="string" required="false" default="" hint="List of statuses to filter positive for: STATUS:COMPLETED,PRIORITY:1" />
 		<cfargument name="negFilters" type="string" required="false" default="" hint="List of statuses to filter negative for: STATUS:COMPLETED,PRIORITY:2" />
 		<cfargument name="urlAppend" type="string" required="false" default="" />
@@ -285,27 +301,39 @@
 		
 		<cfset var result = {}>
 
-		<cfsavecontent variable="xmlstr">
-			<C:filter>
-				<C:comp-filter name="VCALENDAR">
-					<C:comp-filter name="VTODO">
-						<cfloop list="#arguments.posFilters#" index="i">
-							<C:prop-filter name="<cfoutput>#ucase(listFirst(i,':'))#</cfoutput>">
-								<C:text-match negate-condition="no"><cfoutput>#ucase(listLast(i,':'))#</cfoutput></C:text-match>
-							</C:prop-filter>
-						</cfloop>
-						<cfloop list="#arguments.negFilters#" index="i">
-							<C:prop-filter name="<cfoutput>#ucase(listFirst(i,':'))#</cfoutput>">
-								<C:text-match negate-condition="yes"><cfoutput>#ucase(listLast(i,':'))#</cfoutput></C:text-match>
-							</C:prop-filter>
-						</cfloop>
-
-						<cfif arguments.startDateTime neq "" and arguments.endDateTime neq "">
-							<C:time-range start="<cfoutput>#arguments.startDateTime#</cfoutput>" end="<cfoutput>#arguments.endDateTime#</cfoutput>"/>
+		<cfsavecontent variable="xmlstr"><?xml version="1.0" encoding="utf-8" ?>
+			<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+				<D:prop>
+					<C:calendar-data>
+						<cfif arguments.expand and arguments.startDateTime neq "" and arguments.endDateTime neq "">
+							<C:expand start="<cfoutput>#arguments.startDateTime#</cfoutput>" end="<cfoutput>#arguments.endDateTime#</cfoutput>"/>
 						</cfif>
+					</C:calendar-data>
+					<D:getetag/>
+				</D:prop>
+
+				<C:filter>
+					<C:comp-filter name="VCALENDAR">
+						<C:comp-filter name="VTODO">
+							<cfloop list="#arguments.posFilters#" index="i">
+								<C:prop-filter name="<cfoutput>#ucase(listFirst(i,':'))#</cfoutput>">
+									<C:text-match negate-condition="no"><cfoutput>#ucase(listLast(i,':'))#</cfoutput></C:text-match>
+								</C:prop-filter>
+							</cfloop>
+							<cfloop list="#arguments.negFilters#" index="i">
+								<C:prop-filter name="<cfoutput>#ucase(listFirst(i,':'))#</cfoutput>">
+									<C:text-match negate-condition="yes"><cfoutput>#ucase(listLast(i,':'))#</cfoutput></C:text-match>
+								</C:prop-filter>
+							</cfloop>
+
+							<cfif arguments.startDateTime neq "" and arguments.endDateTime neq "">
+								<C:time-range start="<cfoutput>#arguments.startDateTime#</cfoutput>" end="<cfoutput>#arguments.endDateTime#</cfoutput>"/>
+							</cfif>
+						</C:comp-filter>
 					</C:comp-filter>
-				</C:comp-filter>
-			</C:filter>
+				</C:filter>
+
+			</C:calendar-query>
 		</cfsavecontent>
 
 		<cfset result = query(xmlstr, arguments.urlAppend, arguments.mode)>
@@ -321,7 +349,7 @@
 	@mode how to return the results. "all" gives the http response, 
 		"struct" parses out the ical, and "ical" is the text string.  
 		struct and ical are  array of entries
-
+		
 	For more information regarding filters see:
 	http://tools.ietf.org/html/rfc4791
 	 --->
@@ -338,17 +366,7 @@
 		<cfset var href={}>
 		<cfset var ical={}>
 
-		<cfsavecontent variable="xmlstr"><?xml version="1.0" encoding="utf-8" ?>
-			<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
-				<D:prop>
-					<C:calendar-data/>
-					<D:getetag/>
-				</D:prop>
-				<cfoutput>#arguments.xmlFilter#</cfoutput>
-			</C:calendar-query>
-		</cfsavecontent>
-
-		<cfset result = makeRequest(arguments.urlAppend, "REPORT", xmlstr, "text/xml")>
+		<cfset result = makeRequest(arguments.urlAppend, "REPORT", arguments.xmlFilter, "text/xml")>
 
 		<!--- return the full package --->
 		<cfif arguments.mode eq "all">

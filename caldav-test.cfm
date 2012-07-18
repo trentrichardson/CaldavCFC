@@ -60,7 +60,7 @@ Try getting an event
 Try getting events
  --->
  
-<cfset myEvent = cdc.getEvents("20120701T000000Z","20120801T000000Z","","","","struct")>
+<cfset myEvent = cdc.getEvents("20120701T000000Z","20120801T000000Z", true,"","","","struct")>
 <cfdump var="#myEvent#">
 
 
@@ -78,7 +78,7 @@ Try querying for event by uid
 Try getting todos
  --->
 <!--- 
-<cfset myEvent = cdc.getTodos("20120601T000000Z","20120701T000000Z","", "STATUS:COMPLETED,STATUS:CANCELLED","","struct")>
+<cfset myEvent = cdc.getTodos("20120601T000000Z","20120701T000000Z", true,"", "STATUS:COMPLETED,STATUS:CANCELLED","","struct")>
 <cfdump var="#myEvent#">
  --->
 
